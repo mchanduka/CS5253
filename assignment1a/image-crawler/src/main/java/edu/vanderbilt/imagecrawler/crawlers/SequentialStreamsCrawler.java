@@ -4,7 +4,10 @@ import static edu.vanderbilt.imagecrawler.utils.Crawler.Type.IMAGE;
 import static edu.vanderbilt.imagecrawler.utils.Crawler.Type.PAGE;
 
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import java.util.OptionalInt;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.ToIntFunction;
 import java.util.stream.Stream;
 
@@ -51,7 +54,21 @@ public class SequentialStreamsCrawler // Loaded via reflection
 
         // TODO -- you fill in here replacing this statement with your
         // solution.
-        return 0;
+
+       return Stream
+                .of(pageUri)
+                .filter(e -> depth <= mMaxDepth && mUniqueUris.putIfAbsent(e))
+                .mapToInt(Integer->crawlPage(pageUri, depth))
+                .reduce(0,Integer::sum);
+    }
+
+    protected SequentialStreamsCrawler() {
+        super();
+    }
+
+    @Override
+    protected CompletableFuture<Image> getOrDownloadImageAsync(URL url) {
+        return super.getOrDownloadImageAsync(url);
     }
 
     /**
@@ -82,7 +99,12 @@ public class SequentialStreamsCrawler // Loaded via reflection
         // and stored.
         // TODO -- you fill in here replacing this statement with your
         // solution.
-        return 0;
+         return  Stream.of(pageUri)
+                .map(mWebPageCrawler::getPage)
+                .filter(Objects::nonNull)
+                .map((page)->processPage(page,depth))
+                .mapToInt(Integer::valueOf)
+                .reduce(0,Integer::sum);
     }
 
     /**
@@ -107,7 +129,13 @@ public class SequentialStreamsCrawler // Loaded via reflection
         // Return a count of of all images processed on/from this page.
         // TODO -- you fill in here replacing this statement with your
         // solution.
-        return 0;
+
+        return page.getPageElementsAsStream(IMAGE, PAGE)
+                .filter(Objects::nonNull)
+                .mapToInt(e -> e.getType() == IMAGE ? processImage(e.getURL()):performCrawl(e.getUrl(),depth))
+                .reduce(0,Integer::sum);
+
+
     }
 
     /**
@@ -129,7 +157,13 @@ public class SequentialStreamsCrawler // Loaded via reflection
 
         // TODO -- you fill in here replacing this statement with your
         // solution.
-        return 0;
+
+
+        return Stream.of(url)
+                .map(this::getOrDownloadImage)
+                .filter(Objects::nonNull)
+                .mapToInt(this::transformImage)
+                .reduce(0,Integer::sum);
     }
 
     /**
@@ -168,7 +202,12 @@ public class SequentialStreamsCrawler // Loaded via reflection
 
         // TODO -- you fill in here replacing this statement with your
         // solution.
-        return 0;
+
+
+        return  (int)mTransforms.stream()
+                .map(e ->createNewCacheItem(image,e))
+                .filter(Objects::nonNull)
+                .count();
     }
 
     /**
