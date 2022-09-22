@@ -53,7 +53,12 @@ public class ParallelStreamsCrawler // Loaded via reflection
         //    processed images from the one-element stream.
 
         // TODO -- you fill in here replacing this statement with your solution.
-        return 0;
+        return  Stream
+                .of(pageUri)
+                .parallel()
+                .filter(e -> depth <= mMaxDepth && mUniqueUris.putIfAbsent(e))
+                .mapToInt(Integer->crawlPage(pageUri, depth))
+                .reduce(0,Integer::sum);
     }
 
     /**
@@ -82,7 +87,13 @@ public class ParallelStreamsCrawler // Loaded via reflection
         // stored.
         // TODO -- you fill in here replacing this statement with your
         // solution.
-        return 0;
+        return Stream.of(pageUri)
+                .parallel()
+                .map(mWebPageCrawler::getPage)
+                .filter(Objects::nonNull)
+                .map((page)->processPage(page,depth))
+                .mapToInt(Integer::valueOf)
+                .reduce(0,Integer::sum);
     }
 
     /**
@@ -108,7 +119,11 @@ public class ParallelStreamsCrawler // Loaded via reflection
         // Return a count of of all images processed on/from this page.
         // TODO -- you fill in here replacing this statement with your
         // solution.
-        return 0;
+        return page.getPageElementsAsStream(IMAGE, PAGE)
+                .parallel()
+                .filter(Objects::nonNull)
+                .mapToInt(e -> e.getType() == IMAGE ? processImage(e.getURL()):performCrawl(e.getUrl(),depth))
+                .reduce(0,Integer::sum);
     }
 
     /**
@@ -131,7 +146,12 @@ public class ParallelStreamsCrawler // Loaded via reflection
         // Return the count of transformed images.
         // TODO -- you fill in here replacing this statement with your
         // solution.
-        return 0;
+        return Stream.of(url)
+                .parallel()
+                .map(this::getOrDownloadImage)
+                .filter(Objects::nonNull)
+                .mapToInt(this::transformImage)
+                .reduce(0,Integer::sum);
     }
 
     /**
@@ -169,7 +189,10 @@ public class ParallelStreamsCrawler // Loaded via reflection
         // 5. Count the number of non-null images that were transformed.
 
         // TODO -- you fill in here replacing this statement with your solution.
-        return 0;
+        return (int)mTransforms.parallelStream()
+                .map(e ->createNewCacheItem(image,e))
+                .filter(Objects::nonNull)
+                .count();
     }
 
     /**
